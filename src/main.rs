@@ -1,3 +1,7 @@
+extern crate chess_engine;
+
+use chess_engine::*;
+
 fn main() {
-    println!("Hello, world!");
+    let board = ChessBoard::new();
 }
