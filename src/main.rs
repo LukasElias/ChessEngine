@@ -4,4 +4,6 @@ use chess_engine::*;
 
 fn main() {
     let board = ChessBoard::new();
+
+    println!("{}", board);
 }
