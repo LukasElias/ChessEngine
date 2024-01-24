@@ -73,15 +73,15 @@ impl Square {
 }
 
 pub struct ChessMove {
-    from: (usize, usize), // (row, column) of the piece's current position
-    to: (usize, usize),   // (row, column) of the piece's destination position
-    promotion: Option<Piece>, // Optional piece for pawn promotion
-    capture: Option<Piece>,   // Optional captured piece
-    en_passant: bool,          // Indicates if the move is an en passant capture
-    castling: Option<CastleType>, // Indicates if the move is a castling move
+    pub from: (usize, usize), // (row, column) of the piece's current position
+    pub to: (usize, usize),   // (row, column) of the piece's destination position
+    pub promotion: Option<Piece>, // Optional piece for pawn promotion
+    pub capture: Option<Piece>,   // Optional captured piece
+    pub en_passant: bool,          // Indicates if the move is an en passant capture
+    pub castling: Option<CastleType>, // Indicates if the move is a castling move
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ChessBoard {
     pub board: [[Square; 8]; 8],
     pub is_white: bool,
@@ -137,7 +137,7 @@ impl ChessBoard {
                                             continue; // check if relative_x and relative_y is valid
                                         }
 
-                                        if self.board[y + relative_y - 1][x + relative_x - 1].piece.is_black_piece() {
+                                        if !self.board[y + relative_y - 1][x + relative_x - 1].piece.is_white_piece() {
                                             available_moves.push(
                                                 ChessMove {
                                                     from: (x, y),
@@ -164,7 +164,7 @@ impl ChessBoard {
                                                     en_passant: false,
                                                     castling: Some(CastleType::Kingside),
                                                 }
-                                            )
+                                            );
                                         }
                                     }
                                     if !self.queen_rook_has_moved {
@@ -178,7 +178,7 @@ impl ChessBoard {
                                                     en_passant: false,
                                                     castling: Some(CastleType::Kingside),
                                                 }
-                                            )
+                                            );
                                         }
                                     }
                                 }
@@ -193,7 +193,95 @@ impl ChessBoard {
 
                             },
                             Piece::WhiteKnight => {
-
+                                if x >= 2 && y >= 1 && !self.board[y - 1][x - 2].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x - 2, y - 1),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x >= 1 && y >= 2 && !self.board[y - 2][x - 1].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x - 1, y - 2),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x >= 2 && y <= 6 && !self.board[y + 1][x - 2].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x - 2, y + 1),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x >= 1 && y >= 5 && !self.board[y + 2][x - 1].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x - 1, y + 2),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    )
+                                } if x <= 5 && y >= 1 && !self.board[y - 1][x + 2].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x + 2, y - 1),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x <= 6 && y >= 2 && !self.board[y - 2][x + 1].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x + 1, y - 2),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x >= 5 && y >= 6 && !self.board[y + 1][x + 2].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x + 2, y + 1),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                } if x >= 6 && y >= 5 && !self.board[y + 2][x + 1].piece.is_white_piece() {
+                                    available_moves.push(
+                                        ChessMove {
+                                            from: (x, y),
+                                            to: (x + 1, y + 2),
+                                            promotion: Option::None,
+                                            capture: Option::None,
+                                            en_passant: false,
+                                            castling: Option::None,
+                                        }
+                                    );
+                                }
                             },
                             Piece::WhitePawn => {
 
@@ -206,6 +294,22 @@ impl ChessBoard {
         }
 
         vec![]
+    }
+
+    pub fn move_piece(&self, chess_move: &ChessMove) -> ChessBoard {
+        let mut new_chessboard = self.clone();
+
+        if chess_move.capture.is_some() {
+            new_chessboard.board[chess_move.to.1][chess_move.to.0].piece = Piece::Empty;
+        } if chess_move.promotion.is_some() {
+            new_chessboard.board[chess_move.from.1][chess_move.from.0].piece = chess_move.promotion.unwrap();
+        } if chess_move.castling.is_some() {
+
+        }
+
+        (new_chessboard.board[chess_move.from.1][chess_move.from.0].piece, new_chessboard.board[chess_move.to.1][chess_move.to.0].piece) = (new_chessboard.board[chess_move.to.1][chess_move.to.0].piece, new_chessboard.board[chess_move.from.1][chess_move.from.0].piece);
+
+        new_chessboard
     }
 }
 
