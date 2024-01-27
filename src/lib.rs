@@ -81,8 +81,13 @@ impl Piece {
     }
 }
 
-struct ChessMove {
-    notation: String,
+pub struct ChessMove {
+    pub notation: String,
+    pub from: Pos,
+    pub to: Pos,
+    pub castle: Option<bool>, // if true it's a kingside castle otherwise it's a queenside castle
+    pub en_passent: Option<Pos>,
+    pub promotion: Option<Piece>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -96,11 +101,14 @@ impl Pos {
         format!("{}{}", "abcdefhg".as_bytes()[self.column] - 1, self.row)
     }
 
-    pub fn from_chess_notation(notation: String) -> Self {
-        Self {
+    pub fn from_chess_notation(notation: String) -> Option<Self> {
+        if notation.len() != 2 {
+            Option::None
+        }
+        Some(Self {
             column: "abcdefhg".find(notation.chars().next().unwrap()).unwrap(),
             row: notation.chars().nth(1).unwrap().to_digit(10).unwrap() as usize,
-        }
+        })
     }
 }
 
@@ -144,13 +152,7 @@ impl ChessBoard {
             splitted_fen[2].contains('q'),
         ];
 
-        let en_passent: Option<Pos> = (|| {
-            if splitted_fen[3] == "-" {
-                return Option::None;
-            } else {
-                return Some(Pos::from_chess_notation(splitted_fen[3].to_string()));
-            }
-        })();
+        let en_passent: Option<Pos> = Pos::from_chess_notation(splitted_fen[3].to_string()); 
 
         let half_moves: usize = splitted_fen[4].parse().unwrap();
         let full_moves: usize = splitted_fen[5].parse().unwrap();
@@ -166,5 +168,9 @@ impl ChessBoard {
             half_moves,
             full_moves,
         }
+    }
+
+    pub fn available_moves() -> Vec<ChessMove> {
+
     }
 }
