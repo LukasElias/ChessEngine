@@ -103,8 +103,9 @@ impl Pos {
 
     pub fn from_chess_notation(notation: String) -> Option<Self> {
         if notation.len() != 2 {
-            Option::None
+            return Option::None;
         }
+
         Some(Self {
             column: "abcdefhg".find(notation.chars().next().unwrap()).unwrap(),
             row: notation.chars().nth(1).unwrap().to_digit(10).unwrap() as usize,
@@ -171,6 +172,6 @@ impl ChessBoard {
     }
 
     pub fn available_moves() -> Vec<ChessMove> {
-
+        
     }
 }
