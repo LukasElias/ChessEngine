@@ -21,18 +21,12 @@ body {
 	grid-template-columns: repeat(8, 1fr);
 }
 
-.board .tile:nth-child(even) {
-	background: #222;
-}
-
-.board > .row:nth-child(even) > .tile:nth-child(even) {
-	background: #ccc;
-}
-
-.board .tile:nth-child(odd) {
-	background: #ccc;
-}
-
+.board .tile:nth-child(even),
 .board > .row:nth-child(even) > .tile:nth-child(odd) {
 	background: #222;
+}
+
+.board .tile:nth-child(odd),
+.board > .row:nth-child(even) > .tile:nth-child(even) {
+	background: #ccc;
 }
