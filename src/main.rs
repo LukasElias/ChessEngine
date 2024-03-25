@@ -1,8 +1,9 @@
-extern crate chess_engine;
-
-use chess_engine::*;
-mod bot;
+mod server;
+use server::*;
 
 fn main() {
-    let board = ChessBoard::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    match start_server() {
+        Err(error) => panic!("Something went wrong: {}", error),
+        Ok(()) => (),
+    }
 }

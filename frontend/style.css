@@ -1,0 +1,38 @@
+body {
+	display: grid;
+	place-items: center;
+	width: 100vw;
+	width: 100dvw;
+	height: 100vh;
+	height: 100dvh;
+	margin: 0;
+	background: #555;
+}
+
+.board {
+	display: grid;
+	grid-template-rows: repeat(8, 1fr);
+	width: 256px;
+	height: 256px;
+}
+
+.board > .row {
+	display: grid;
+	grid-template-columns: repeat(8, 1fr);
+}
+
+.board .tile:nth-child(even) {
+	background: #222;
+}
+
+.board > .row:nth-child(even) > .tile:nth-child(even) {
+	background: #ccc;
+}
+
+.board .tile:nth-child(odd) {
+	background: #ccc;
+}
+
+.board > .row:nth-child(even) > .tile:nth-child(odd) {
+	background: #222;
+}
