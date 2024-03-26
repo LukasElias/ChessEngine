@@ -1,4 +1,5 @@
 extern crate regex;
+extern crate chess_engine;
 
 use {
     std::{
@@ -6,6 +7,7 @@ use {
         io::{self, BufRead, Write},
         net,
     },
+    chess_engine::bot,
     regex::Regex,
 };
 
@@ -32,9 +34,6 @@ fn handle_request(mut stream: net::TcpStream) {
     println!("{}", http_request);
 
     let pattern = Regex::new(r"GET\s\/\S*").unwrap();
-
-    println!("{:?}", pattern.find(&http_request));
-
 
     let file_path: String = format!("frontend{}", match pattern.find(&http_request) {
         Some(match_value) => {
