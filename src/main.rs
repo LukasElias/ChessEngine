@@ -1,9 +1,5 @@
-mod server;
-use server::*;
+mod bot;
 
 fn main() {
-    match start_server() {
-        Err(error) => panic!("Something went wrong: {}", error),
-        Ok(()) => (),
-    }
+    
 }

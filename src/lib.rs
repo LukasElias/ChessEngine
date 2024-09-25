@@ -1,5 +1,3 @@
-pub mod bot;
-
 #[derive(Clone, Copy, Debug, Default)]
 pub enum Piece {
     #[default]
