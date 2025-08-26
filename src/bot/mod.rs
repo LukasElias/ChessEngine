@@ -1,14 +1,11 @@
 use {
-    chess::{
-        Board,
-        Color,
-    },
+    chess::*,
     std::time::Duration,
 };
 
 #[derive(Clone, Copy, Debug)]
 pub struct GameOptions {
-    time: Duration,
+    time: Option<Duration>,
     engine_plays: Color,
 }
 
@@ -21,7 +18,7 @@ pub struct Game {
 impl Default for GameOptions {
     fn default() -> Self {
         Self {
-            time: Duration::from_secs(5 * 60), // 5 Minutes
+            time: None,
             engine_plays: Color::Black,
         }
     }
