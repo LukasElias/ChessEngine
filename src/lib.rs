@@ -17,7 +17,7 @@ pub enum Piece {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Square {
+pub struct Position {
     pub x: u8,
     pub y: u8,
 }
@@ -28,11 +28,11 @@ pub struct ChessMove {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ChessPosition {
+pub struct Board {
     pub pieces: [Piece; 64],
     pub is_white: bool,
     pub castling_availability: [bool; 4],
-    pub en_passent: Option<Square>,
+    pub en_passent: Option<Position>,
     pub half_moves: usize,
     pub full_moves: usize,
 }
@@ -40,7 +40,7 @@ pub struct ChessPosition {
 #[derive(Clone, Debug, Default)]
 pub struct ChessMatch {
     pub move_history: Vec<ChessMove>,
-    pub current_position: ChessPosition,
+    pub current_position: Board,
 }
 
 impl From<char> for Piece {
@@ -63,7 +63,7 @@ impl From<char> for Piece {
     }
 }
 
-impl From<String> for Square {
+impl From<String> for Position {
     fn from(value: String) -> Self {
         Self {
             x: "abcdefgh".find(value.get(0..0).unwrap()).unwrap() as u8,
@@ -72,7 +72,7 @@ impl From<String> for Square {
     }
 }
 
-impl ChessPosition {
+impl Board {
     pub fn from_fen(fen: String) -> Self {
         Self {
             pieces: {
@@ -108,7 +108,7 @@ impl ChessPosition {
                 if en_passent == "-" {
                     None
                 } else {
-                    Some(Square::from(en_passent.to_string()))
+                    Some(Position::from(en_passent.to_string()))
                 }
             },
             half_moves: usize::from_str_radix(fen.split_whitespace().nth(4).unwrap(), 10).unwrap(),
@@ -117,7 +117,7 @@ impl ChessPosition {
     }
 }
 
-impl Default for ChessPosition {
+impl Default for Board {
     fn default() -> Self {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string())
     }
