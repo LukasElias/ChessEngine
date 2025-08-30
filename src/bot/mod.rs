@@ -1,44 +1,44 @@
 use {
     chess::{
-        Game,
         Board,
-        Color,
         ChessMove,
-        Error,
+        MoveGen,
     },
     std::time::Duration,
 };
 
-#[derive(Clone, Copy, Debug)]
-pub struct GameOptions {
-    time: Duration,
-    engine_plays: Color,
+#[derive(Debug, Clone)]
+pub struct Game<W: Player, B: Player> {
+    current_board: Board,
+    moves: Vec<ChessMove>,
+    player_white: W,
+    player_black: B,
+    time_left: Option<Duration>,
+    start_time: Option<Duration>,
 }
 
-impl Default for GameOptions {
-    fn default() -> Self {
+impl<W: Player, B: Player> Game<W, B> {
+    pub fn new(player_white: W, player_black: B) -> Self {
         Self {
-            time: Duration::from_secs(5 * 60), // 5 Minutes
-            engine_plays: Color::Black,
+            current_board: Board::default(),
+            moves: Vec::new(),
+            player_white,
+            player_black,
+            time_left: None,
+            start_time: None,
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct EngineMatch {
-    options: GameOptions,
-    game: Game,
+trait Player {
+    fn make_move(board: &Board) -> ChessMove;
 }
 
-impl EngineMatch {
-    pub fn new(options: GameOptions) -> Self {
-        Self {
-            options,
-            game: Game::new(),
-        }
-    }
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Bot;
 
-    pub fn user_move(chess_move: ChessMove) -> Result<(), Error> {
-        Ok(())
+impl Player for Bot {
+    fn make_move(board: &Board) -> ChessMove {
+        MoveGen::new_legal(board).next().unwrap()
     }
 }
