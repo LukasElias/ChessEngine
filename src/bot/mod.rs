@@ -30,7 +30,7 @@ impl<W: Player, B: Player> Game<W, B> {
     }
 }
 
-trait Player {
+pub trait Player {
     fn make_move(board: &Board) -> ChessMove;
 }
 
@@ -38,6 +38,15 @@ trait Player {
 pub struct Bot;
 
 impl Player for Bot {
+    fn make_move(board: &Board) -> ChessMove {
+        MoveGen::new_legal(board).next().unwrap()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Human;
+
+impl Player for Human {
     fn make_move(board: &Board) -> ChessMove {
         MoveGen::new_legal(board).next().unwrap()
     }
