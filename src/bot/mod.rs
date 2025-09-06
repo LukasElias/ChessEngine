@@ -4,17 +4,20 @@ use {
         ChessMove,
         MoveGen,
     },
-    std::time::Duration,
+    std::{
+        fmt::Debug,
+        time::Duration,
+    },
 };
 
 #[derive(Debug, Clone)]
 pub struct Game<W: Player, B: Player> {
-    current_board: Board,
-    moves: Vec<ChessMove>,
-    player_white: W,
-    player_black: B,
-    time_left: Option<Duration>,
-    start_time: Option<Duration>,
+    pub current_board: Board,
+    pub moves: Vec<ChessMove>,
+    pub player_white: W,
+    pub player_black: B,
+    pub time_left: Option<Duration>,
+    pub start_time: Option<Duration>,
 }
 
 impl<W: Player, B: Player> Game<W, B> {
@@ -30,7 +33,7 @@ impl<W: Player, B: Player> Game<W, B> {
     }
 }
 
-pub trait Player {
+pub trait Player: Send + Sync + Debug + 'static {
     fn make_move(board: &Board) -> ChessMove;
 }
 
