@@ -6,7 +6,6 @@ use {
         Piece,
     },
     std::{
-        fmt::Debug,
         io::{
             stdin,
             stdout,
@@ -14,9 +13,34 @@ use {
             Result,
             Write,
         },
+        fmt::Debug,
         str::FromStr,
+        time::Duration,
     },
 };
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
+enum MoveTime {
+    #[default]
+    NotSpecified,
+    Finite(Duration),
+    Infinite,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+struct CalculatingOptions {
+    search_moves: Vec<ChessMove>,
+    ponder: bool,
+    white_time: Option<Duration>,
+    black_time: Option<Duration>,
+    white_increment_time: Duration,
+    black_increment_time: Duration,
+    moves_to_go: usize,
+    depth: usize,
+    nodes: usize,
+    mate: usize,
+    move_time: MoveTime,
+}
 
 #[derive(Debug, Clone)]
 struct Game {
@@ -39,8 +63,37 @@ impl Engine {
             let line = line.unwrap();
             let mut parts = line.split_whitespace();
 
+            // TODO: Optimize the position command, so it doesnt rebuild the whole board if it's just a few moves behind
             // TODO: Split this up into multiple functions
-            // TODO: Write info all the time to make sure how the engine is doing
+            // TODO: Support every command from the gui:
+            //
+            // debug [ on | off ]
+            // 
+            // setoption name  [value ]
+            // 
+            // register
+            //   later
+            //   name 
+            //   code 
+            // 
+            // go
+            //   searchmoves  .... 
+            //   ponder
+            //   wtime x
+            //   btime x
+            //   winc x
+            //   binc x
+            //   movestogo x
+            //   depth x
+            //   nodes x
+            //   mate x
+            //   movetime x
+            //   infinite
+            //   
+            // stop
+            // 
+            // ponderhit
+            //
 
             match parts.next() {
                 Some("uci") => {
@@ -104,6 +157,63 @@ impl Engine {
                         }
                     }
                 },
+                Some("go") => {
+                    // TODO: understand the sub commands for the go command and make a CalculatingOptions struct and pass it to the go function
+                    // If both movetime and infinite for some reason showed up, the last one will be the one the engine thinks is valid
+
+                    let mut options = CalculatingOptions::default();
+
+                    while let Some(subcommand) = parts.next() {
+                        match subcommand {
+                            "searchmoves" => {},
+                            "ponder" => {
+                                options.ponder = true;
+                            },
+                            "wtime" => {
+                                let millisec: u64 = parts.next().expect("The parameters is incorrect for wtime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.white_time = Some(Duration::from_millis(millisec));
+                            },
+                            "btime" => {
+                                let millisec: u64 = parts.next().expect("The parameters is incorrect for btime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.black_time = Some(Duration::from_millis(millisec));
+                            },
+                            "winc" => {
+                                let millisec: u64 = parts.next().expect("The parameters is incorrect for winc, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic Thanks for now. TODO: Don't panic");
+                                options.white_increment_time = Duration::from_millis(millisec);
+                            },
+                            "binc" => {
+                                let millisec: u64 = parts.next().expect("The parameters is incorrect for binc, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic Thanks for now. TODO: Don't panic");
+                                options.black_increment_time = Duration::from_millis(millisec);
+                            },
+                            "movestogo" => {
+                                let moves: usize = parts.next().expect("The parameters is incorrect for movestogo, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.moves_to_go = moves;
+                            },
+                            "depth" => {
+                                let depth: usize = parts.next().expect("The parameters is incorrect for depth, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.depth = depth;
+                            },
+                            "nodes" => {
+                                let nodes: usize = parts.next().expect("The parameters is incorrect for nodes, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.nodes = nodes;
+                            },
+                            "mate" => {
+                                let mate: usize = parts.next().expect("The parameters is incorrect for mate, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.mate = mate;
+                            },
+                            "movetime" => {
+                                let millisec: u64 = parts.next().expect("The parameters is incorrect for movetime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
+                                options.move_time = MoveTime::Finite(Duration::from_millis(millisec));
+                            },
+                            "infinite" => {
+                                options.move_time = MoveTime::Infinite;
+                            },
+                            _ => { }
+                        }
+                    }
+
+                    self.go(options);
+                }
                 Some("quit") => break,
                 _ => { },
             }
@@ -120,5 +230,11 @@ impl Engine {
 
     fn reset(&mut self) {
         self.game = None;
+    }
+
+    fn go(&self, options: CalculatingOptions) {
+        // TODO: calculate move
+
+        println!("go: {:?}", options);
     }
 }
