@@ -1,11 +1,14 @@
 mod bot;
 
 use {
-    std::io::Result,
-    bot::Engine,
+    bot::{
+        Engine,
+        UCI,
+        EngineError,
+    },
 };
 
-fn main() -> Result<()> {
+fn main() -> Result<(), EngineError> {
     let mut engine = Engine::default();
 
     engine.listen()
