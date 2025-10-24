@@ -164,6 +164,10 @@ impl UCI for Engine {
         match arguments.next() {
             Some("moves") => {
                 while let Some(move_notation) = arguments.next() {
+                    if move_notation.len() < 4 || move_notation.len() > 5 {
+                        return Err(EngineError::InvalidCommand("position ... moves".to_string()))
+                    }
+
                     let src_square = Square::from_str(&move_notation[0..2])?;
                     let dest_square = Square::from_str(&move_notation[2..4])?;
                     let promotion = match move_notation.chars().nth(4) {
