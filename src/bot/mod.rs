@@ -63,7 +63,6 @@ impl UCI for Engine {
             let mut parts = line.split_whitespace();
 
             // TODO: Optimize the position command, so it doesnt rebuild the whole board if it's just a few moves behind
-            // TODO: Split this up into multiple functions
             // TODO: Support every command from the gui:
             //
             // debug [ on | off ]
@@ -143,7 +142,6 @@ impl UCI for Engine {
     }
 
     fn position(&mut self, arguments: &mut SplitWhitespace) -> Result<(), EngineError> {
-        // TODO: Don't recalculate the whole board everytime a new position command is passed
         let mut board: Board;
         match arguments.next() {
             Some("startpos") => board = Board::default(),
