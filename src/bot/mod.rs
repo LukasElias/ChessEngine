@@ -2,14 +2,26 @@ mod uci;
 
 use {
     chess::{
-        Board, ChessMove, Error as ChessError, Square, Piece,
-    }, std::{
-        error::Error, fmt::{
+        Board, ChessMove, Error as ChessError, MoveGen, Piece, Square
+    },
+    std::{
+        error::Error,
+        fmt::{
             Debug,
             Display,
-        }, io::{
-            stdin, stdout, BufRead, Error as IoError, Write
-        }, str::{FromStr, SplitWhitespace},
+        },
+        io::{
+            stdin,
+            stdout,
+            BufRead,
+            Error as IoError,
+            Write,
+        },
+        str::{
+            FromStr,
+            SplitWhitespace,
+        },
+        time::Duration,
     },
 };
 
@@ -51,6 +63,29 @@ impl From<IoError> for EngineError {
     fn from(value: IoError) -> Self {
         Self::Io(value)
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub struct GoOptions {
+    pub search_moves: Vec<ChessMove>,
+    pub ponder: bool,
+    pub white_time: Option<Duration>,
+    pub black_time: Option<Duration>,
+    pub white_increment_time: Duration,
+    pub black_increment_time: Duration,
+    pub moves_to_go: usize,
+    pub depth: usize,
+    pub nodes: usize,
+    pub mate: usize,
+    pub move_time: MoveTime,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub enum MoveTime {
+    #[default]
+    NotSpecified,
+    Finite(Duration),
+    Infinite,
 }
 
 impl UCI for Engine {
@@ -192,63 +227,87 @@ impl UCI for Engine {
     }
 
     fn go(&self, arguments: &mut SplitWhitespace) -> Result<(), EngineError> {
-        // TODO: understand the sub commands for the go command and make a CalculatingOptions struct and pass it to the go function
-        // If both movetime and infinite for some reason showed up, the last one will be the one the engine thinks is valid
+        let mut stdout = stdout();
 
-        // let mut options = GoOptions::default();
-        //
-        // while let Some(subcommand) = parts.next() {
-        //     match subcommand {
-        //         "searchmoves" => {},
-        //         "ponder" => {
-        //             options.ponder = true;
-        //         },
-        //         "wtime" => {
-        //             let millisec: u64 = parts.next().expect("The parameters is incorrect for wtime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.white_time = Some(Duration::from_millis(millisec));
-        //         },
-        //         "btime" => {
-        //             let millisec: u64 = parts.next().expect("The parameters is incorrect for btime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.black_time = Some(Duration::from_millis(millisec));
-        //         },
-        //         "winc" => {
-        //             let millisec: u64 = parts.next().expect("The parameters is incorrect for winc, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.white_increment_time = Duration::from_millis(millisec);
-        //         },
-        //         "binc" => {
-        //             let millisec: u64 = parts.next().expect("The parameters is incorrect for binc, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic Thanks for now. TODO: Don't panic");
-        //             options.black_increment_time = Duration::from_millis(millisec);
-        //         },
-        //         "movestogo" => {
-        //             let moves: usize = parts.next().expect("The parameters is incorrect for movestogo, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.moves_to_go = moves;
-        //         },
-        //         "depth" => {
-        //             let depth: usize = parts.next().expect("The parameters is incorrect for depth, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.depth = depth;
-        //         },
-        //         "nodes" => {
-        //             let nodes: usize = parts.next().expect("The parameters is incorrect for nodes, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.nodes = nodes;
-        //         },
-        //         "mate" => {
-        //             let mate: usize = parts.next().expect("The parameters is incorrect for mate, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.mate = mate;
-        //         },
-        //         "movetime" => {
-        //             let millisec: u64 = parts.next().expect("The parameters is incorrect for movetime, will panic. TODO: Don't panic").parse().expect("The parameter is not a number that works. Atleast it threw an error parsing it, so I'll panic. Thanks for now. TODO: Don't panic");
-        //             options.move_time = MoveTime::Finite(Duration::from_millis(millisec));
-        //         },
-        //         "infinite" => {
-        //             options.move_time = MoveTime::Infinite;
-        //         },
-        //         _ => (),
-        //     }
-        // }
-        //
+        let mut options = GoOptions::default();
+
+        while let Some(subcommand) = arguments.next() {
+            match subcommand {
+                "searchmoves" => {
+                    while let Some(move_notation) = arguments.next() {
+                        if move_notation.len() < 4 || move_notation.len() > 5 {
+                            return Err(EngineError::InvalidCommand("go searchmoves".to_string()))
+                        }
+
+                        let src_square = Square::from_str(&move_notation[0..2])?;
+                        let dest_square = Square::from_str(&move_notation[2..4])?;
+                        let promotion = match move_notation.chars().nth(4) {
+                            Some('q') => Some(Piece::Queen),
+                            Some('n') => Some(Piece::Knight),
+                            Some('r') => Some(Piece::Rook),
+                            Some('b') => Some(Piece::Bishop),
+                            Some(_) => None,
+                            None => None,
+                        };
+
+                        let chess_move = ChessMove::new(src_square, dest_square, promotion);
+                        options.search_moves.push(chess_move);
+                    }
+                },
+                "ponder" => options.ponder = true,
+                "wtime" => {
+                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go wtime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go wtime".to_string()))?;
+                    options.white_time = Some(Duration::from_millis(millisec));
+                },
+                "btime" => {
+                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go btime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go btime".to_string()))?;
+                    options.black_time = Some(Duration::from_millis(millisec));
+                },
+                "winc" => {
+                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go winc".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go winc".to_string()))?;
+                    options.white_increment_time = Duration::from_millis(millisec);
+                },
+                "binc" => {
+                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go binc".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go binc".to_string()))?;
+                    options.black_increment_time = Duration::from_millis(millisec);
+                },
+                "movestogo" => {
+                    let moves: usize = arguments.next().ok_or(EngineError::InvalidCommand("go movestogo".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go movestogo".to_string()))?;
+                    options.moves_to_go = moves;
+                },
+                "depth" => {
+                    let depth: usize = arguments.next().ok_or(EngineError::InvalidCommand("go depth".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go depth".to_string()))?;
+                    options.depth = depth;
+                },
+                "nodes" => {
+                    let nodes: usize = arguments.next().ok_or(EngineError::InvalidCommand("go nodes".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go nodes".to_string()))?;
+                    options.nodes = nodes;
+                },
+                "mate" => {
+                    let mate: usize = arguments.next().ok_or(EngineError::InvalidCommand("go mate".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go mate".to_string()))?;
+                    options.mate = mate;
+                },
+                "movetime" => {
+                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go movetime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go movetime".to_string()))?;
+                    options.move_time = MoveTime::Finite(Duration::from_millis(millisec));
+                },
+                "infinite" => {
+                    options.move_time = MoveTime::Infinite;
+                },
+                _ => (),
+            }
+        }
+
         // TODO: calculate move
 
-        println!("go: {:?}", arguments);
+        let mut move_gen = MoveGen::new_legal(&self.current_board.unwrap());
+
+        let calculated_move = move_gen.next().unwrap();
+
+        // Make a move
+
+        writeln!(stdout, "bestmove {}", calculated_move)?;
+        stdout.flush()?;
 
         Ok(())
     }

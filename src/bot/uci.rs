@@ -18,26 +18,3 @@ pub trait UCI {
     // fn ponderhit(&self) -> Result<(), EngineError>;
     // fn quit(&self) -> Result<(), EngineError>;
 }
-
-// #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
-// pub struct GoOptions {
-//     pub search_moves: Vec<ChessMove>,
-//     pub ponder: bool,
-//     pub white_time: Option<Duration>,
-//     pub black_time: Option<Duration>,
-//     pub white_increment_time: Duration,
-//     pub black_increment_time: Duration,
-//     pub moves_to_go: usize,
-//     pub depth: usize,
-//     pub nodes: usize,
-//     pub mate: usize,
-//     pub move_time: MoveTime,
-// }
-//
-// #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
-// pub enum MoveTime {
-//     #[default]
-//     NotSpecified,
-//     Finite(Duration),
-//     Infinite,
-// }
