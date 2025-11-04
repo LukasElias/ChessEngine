@@ -1,8 +1,12 @@
 mod uci;
+mod search;
 
 use {
+    search::{
+        SearchThread,
+    },
     chess::{
-        Board, ChessMove, Error as ChessError, MoveGen, Piece, Square
+        Board, ChessMove, Error as ChessError, Piece, Square,
     },
     std::{
         error::Error,
@@ -29,6 +33,7 @@ pub use uci::UCI;
 
 #[derive(Debug, Clone, Default)]
 pub struct Engine {
+    search_thread: SearchThread,
     current_board: Option<Board>,
     moves: Vec<ChessMove>,
     // Potential cache and data for the engine
@@ -67,17 +72,21 @@ impl From<IoError> for EngineError {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct GoOptions {
-    pub search_moves: Vec<ChessMove>,
-    pub ponder: bool,
-    pub white_time: Option<Duration>,
-    pub black_time: Option<Duration>,
-    pub white_increment_time: Duration,
-    pub black_increment_time: Duration,
-    pub moves_to_go: usize,
-    pub depth: usize,
-    pub nodes: usize,
-    pub mate: usize,
-    pub move_time: MoveTime,
+    search_moves: Vec<ChessMove>,
+    ponder: bool,
+    white_time: Option<Duration>,
+    black_time: Option<Duration>,
+    white_increment_time: Duration,
+    black_increment_time: Duration,
+    moves_to_go: usize,
+    depth: usize,
+    nodes: usize,
+    mate: usize,
+    move_time: MoveTime,
+
+    // Extra
+    board: Board,
+    // moves: Vec<ChessMove>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -134,7 +143,7 @@ impl UCI for Engine {
                 Some("ucinewgame") => self.ucinewgame(),
                 Some("position") => self.position(&mut parts),
                 Some("go") => self.go(&mut parts),
-                Some("quit") => break,
+                Some("quit") => break, // TODO: when making the quit method from the UCI trait. You should stop the thread by setting the stop_flag and then afterwards drop the sender value to stop the listen loop
                 _ => Ok(()),
             };
 
@@ -227,8 +236,6 @@ impl UCI for Engine {
     }
 
     fn go(&self, arguments: &mut SplitWhitespace) -> Result<(), EngineError> {
-        let mut stdout = stdout();
-
         let mut options = GoOptions::default();
 
         while let Some(subcommand) = arguments.next() {
@@ -298,16 +305,9 @@ impl UCI for Engine {
             }
         }
 
-        // TODO: calculate move
+        options.board = self.current_board.ok_or(EngineError::InvalidCommand("The position has never been initialized".to_string()))?;
 
-        let mut move_gen = MoveGen::new_legal(&self.current_board.unwrap());
-
-        let calculated_move = move_gen.next().unwrap();
-
-        // Make a move
-
-        writeln!(stdout, "bestmove {}", calculated_move)?;
-        stdout.flush()?;
+        self.search_thread.sender.send(options).unwrap();
 
         Ok(())
     }
