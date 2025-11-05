@@ -14,7 +14,7 @@ pub trait UCI {
     fn ucinewgame(&mut self) -> Result<(), EngineError>;
     fn position(&mut self, arguments: &mut SplitWhitespace) -> Result<(), EngineError>;
     fn go(&self, arguments: &mut SplitWhitespace) -> Result<(), EngineError>;
-    // fn stop(&self) -> Result<(), EngineError>;
+    fn stop(&self) -> Result<(), EngineError>;
     // fn ponderhit(&self) -> Result<(), EngineError>;
     // fn quit(&self) -> Result<(), EngineError>;
 }

@@ -25,7 +25,7 @@ use {
 
 #[derive(Debug, Clone)]
 pub struct SearchThread {
-    pub _search_state: Arc<SearchState>,
+    pub search_state: Arc<SearchState>,
     pub sender: mpsc::Sender<GoOptions>,
 }
 
@@ -66,7 +66,7 @@ impl Default for SearchThread {
         });
 
         Self {
-            _search_state: search_state,
+            search_state: search_state,
             sender,
         }
     }

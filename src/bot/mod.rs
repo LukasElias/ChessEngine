@@ -26,6 +26,7 @@ use {
             SplitWhitespace,
         },
         time::Duration,
+        sync::atomic::Ordering,
     },
 };
 
@@ -132,8 +133,6 @@ impl UCI for Engine {
             //   movetime x
             //   infinite
             //   
-            // stop
-            // 
             // ponderhit
             //
 
@@ -143,6 +142,7 @@ impl UCI for Engine {
                 Some("ucinewgame") => self.ucinewgame(),
                 Some("position") => self.position(&mut parts),
                 Some("go") => self.go(&mut parts),
+                Some("stop") => self.stop(),
                 Some("quit") => break, // TODO: when making the quit method from the UCI trait. You should stop the thread by setting the stop_flag and then afterwards drop the sender value to stop the listen loop
                 _ => Ok(()),
             };
@@ -308,6 +308,16 @@ impl UCI for Engine {
         options.board = self.current_board.ok_or(EngineError::InvalidCommand("The position has never been initialized".to_string()))?;
 
         self.search_thread.sender.send(options).unwrap();
+
+        Ok(())
+    }
+
+    fn stop(&self) -> Result<(), EngineError> {
+        let state = &self.search_thread.search_state;
+
+        if state.busy_flag.load(Ordering::Relaxed) {
+            state.stop_flag.store(true, Ordering::Relaxed);
+        }
 
         Ok(())
     }
