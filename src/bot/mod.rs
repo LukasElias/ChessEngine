@@ -2,26 +2,24 @@ mod uci;
 
 use {
     chess::{
-        Board, ChessMove, Error as ChessError, MoveGen, Piece, Square
+        Board, CastleRights, ChessMove, Error as ChessError, MoveGen, Piece, Square, ALL_PIECES,
     },
     std::{
-        error::Error,
-        fmt::{
+        error::Error, f32::{
+            INFINITY, NEG_INFINITY
+        }, fmt::{
             Debug,
             Display,
-        },
-        io::{
+        }, io::{
             stdin,
             stdout,
             BufRead,
             Error as IoError,
             Write,
-        },
-        str::{
+        }, str::{
             FromStr,
             SplitWhitespace,
-        },
-        time::Duration,
+        }, time::Duration
     },
 };
 
@@ -184,7 +182,7 @@ impl UCI for Engine {
                 let fen: Vec<&str> = arguments.take(6).collect();
 
                 if fen.len() != 6 {
-                    return Err(EngineError::InvalidCommand("position fen".to_string()))
+                    return Err(EngineError::InvalidCommand("position fen".to_string()));
                 }
 
                 board = Board::from_str(fen.join(" ").as_str())?;
@@ -198,7 +196,7 @@ impl UCI for Engine {
             Some("moves") => {
                 while let Some(move_notation) = arguments.next() {
                     if move_notation.len() < 4 || move_notation.len() > 5 {
-                        return Err(EngineError::InvalidCommand("position ... moves".to_string()))
+                        return Err(EngineError::InvalidCommand("position ... moves".to_string()));
                     }
 
                     let src_square = Square::from_str(&move_notation[0..2])?;
@@ -236,7 +234,7 @@ impl UCI for Engine {
                 "searchmoves" => {
                     while let Some(move_notation) = arguments.next() {
                         if move_notation.len() < 4 || move_notation.len() > 5 {
-                            return Err(EngineError::InvalidCommand("go searchmoves".to_string()))
+                            return Err(EngineError::InvalidCommand("go searchmoves".to_string()));
                         }
 
                         let src_square = Square::from_str(&move_notation[0..2])?;
@@ -300,9 +298,24 @@ impl UCI for Engine {
 
         // TODO: calculate move
 
-        let mut move_gen = MoveGen::new_legal(&self.current_board.unwrap());
+        let board = &self.current_board.ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
 
-        let calculated_move = move_gen.next().unwrap();
+        let move_gen = MoveGen::new_legal(board);
+        let mut moves: Vec<(isize, ChessMove)> = Vec::new();
+        let mut highest_score_index: usize = 0;
+
+        for child in move_gen {
+            let child_board = board.make_move_new(child);
+            let score = minimax(&child_board, false, 3);
+
+            moves.push((score, child));
+
+            if moves[highest_score_index].0 <= score {
+                highest_score_index = moves.len() - 1;
+            }
+        }
+
+        let calculated_move = moves[highest_score_index].1;
 
         // Make a move
 
@@ -310,5 +323,84 @@ impl UCI for Engine {
         stdout.flush()?;
 
         Ok(())
+    }
+}
+
+
+
+fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
+    if depth == 0 {
+        return evaluate(board, maximizing);
+    }
+
+    let move_gen = MoveGen::new_legal(board);
+
+    if maximizing {
+        let mut max = NEG_INFINITY as isize;
+
+        for chess_move in move_gen {
+            let new_board = board.make_move_new(chess_move);
+            let score = minimax(&new_board, false, depth - 1);
+
+            max = max.max(score);
+        }
+        
+        return max;
+    } else {
+        let mut min = INFINITY as isize;
+
+        for chess_move in move_gen {
+            let new_board = board.make_move_new(chess_move);
+            let score = minimax(&new_board, true, depth - 1);
+
+            min = min.min(score);
+        }
+        
+        return min;
+    }
+}
+
+fn evaluate(board: &Board, maximizing: bool) -> isize {
+    let maximizing_player = if maximizing { board.side_to_move() } else { !board.side_to_move() };
+
+    let mut score = 0;
+    let max_castle_rights = board.castle_rights(maximizing_player);
+    let min_castle_rights = board.castle_rights(!maximizing_player);
+
+    score += castle_rights_to_score(max_castle_rights);
+    score -= castle_rights_to_score(min_castle_rights);
+
+    let max_pieces = board.color_combined(maximizing_player);
+    let min_pieces = board.color_combined(!maximizing_player);
+
+    for piece in ALL_PIECES {
+        let max_bit_board = board.pieces(piece) & max_pieces;
+
+        score += max_bit_board.popcnt() as isize * piece_to_score(piece);
+
+        let min_bit_board = board.pieces(piece) & min_pieces;
+
+        score -= min_bit_board.popcnt() as isize * piece_to_score(piece);
+    }
+
+    score
+}
+
+fn castle_rights_to_score(rights: CastleRights) -> isize {
+    match rights {
+        CastleRights::NoRights => 0,
+        CastleRights::KingSide | CastleRights::QueenSide => 300,
+        CastleRights::Both => 600,
+    }
+}
+
+fn piece_to_score(piece: Piece) -> isize {
+    match piece {
+        Piece::Pawn => 100,
+        Piece::Knight => 300,
+        Piece::Bishop => 300,
+        Piece::Rook => 500,
+        Piece::Queen => 900,
+        Piece::King => 10000,
     }
 }
