@@ -1,6 +1,8 @@
 mod uci;
+mod pst;
 
 use {
+    pst::*,
     chess::{
         Board, CastleRights, ChessMove, Error as ChessError, MoveGen, Piece, Square, ALL_PIECES,
     },
@@ -298,6 +300,20 @@ impl UCI for Engine {
 
         // TODO: calculate move
 
+
+        let calculated_move = self.search_moves(options)?;
+
+        // Make a move
+
+        writeln!(stdout, "bestmove {}", calculated_move)?;
+        stdout.flush()?;
+
+        Ok(())
+    }
+}
+
+impl Engine {
+    fn search_moves(&self, go_options: GoOptions) -> Result<ChessMove, EngineError> {
         let board = &self.current_board.ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
 
         let move_gen = MoveGen::new_legal(board);
@@ -315,18 +331,9 @@ impl UCI for Engine {
             }
         }
 
-        let calculated_move = moves[highest_score_index].1;
-
-        // Make a move
-
-        writeln!(stdout, "bestmove {}", calculated_move)?;
-        stdout.flush()?;
-
-        Ok(())
+        Ok(moves[highest_score_index].1)
     }
 }
-
-
 
 fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
     if depth == 0 {
@@ -373,14 +380,18 @@ fn evaluate(board: &Board, maximizing: bool) -> isize {
     let max_pieces = board.color_combined(maximizing_player);
     let min_pieces = board.color_combined(!maximizing_player);
 
-    for piece in ALL_PIECES {
+    for (piece, pst) in std::array::from_fn::<(Piece, PieceSquareTable), 6, _>(|i| (ALL_PIECES[i], ALL_PSTS[i])) {
         let max_bit_board = board.pieces(piece) & max_pieces;
 
         score += max_bit_board.popcnt() as isize * piece_to_score(piece);
 
+        score += pst.to_score(&max_bit_board);
+
         let min_bit_board = board.pieces(piece) & min_pieces;
 
         score -= min_bit_board.popcnt() as isize * piece_to_score(piece);
+
+        score -= pst.to_score(&min_bit_board);
     }
 
     score
@@ -397,10 +408,10 @@ fn castle_rights_to_score(rights: CastleRights) -> isize {
 fn piece_to_score(piece: Piece) -> isize {
     match piece {
         Piece::Pawn => 100,
-        Piece::Knight => 300,
-        Piece::Bishop => 300,
+        Piece::Knight => 320,
+        Piece::Bishop => 330,
         Piece::Rook => 500,
         Piece::Queen => 900,
-        Piece::King => 10000,
+        Piece::King => 20000,
     }
 }
