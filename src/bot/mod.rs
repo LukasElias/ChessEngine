@@ -161,8 +161,6 @@ impl UCI for Engine {
     fn isready(&self) -> Result<(), EngineError> {
         let mut stdout = stdout();
 
-        // TODO: make sure the engine isn't calculating or anything
-
         writeln!(stdout, "readyok")?;
         stdout.flush()?;
 
@@ -298,9 +296,6 @@ impl UCI for Engine {
             }
         }
 
-        // TODO: calculate move
-
-
         let calculated_move = self.search_moves(options)?;
 
         // Make a move
@@ -311,6 +306,9 @@ impl UCI for Engine {
         Ok(())
     }
 }
+
+// TODO: Optimize and test how fast it is
+// TODO: check the go_options etc...
 
 impl Engine {
     fn search_moves(&self, go_options: GoOptions) -> Result<ChessMove, EngineError> {
