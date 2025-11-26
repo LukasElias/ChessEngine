@@ -31,6 +31,7 @@ pub use uci::UCI;
 pub struct Engine {
     current_board: Option<Board>,
     moves: Vec<ChessMove>,
+    debug: bool,
     // Potential cache and data for the engine
 }
 
@@ -130,6 +131,7 @@ impl UCI for Engine {
 
             let result = match parts.next() {
                 Some("uci") => self.uci(),
+                Some("debug") => self.debug(&mut parts),
                 Some("isready") => self.isready(),
                 Some("ucinewgame") => self.ucinewgame(),
                 Some("position") => self.position(&mut parts),
@@ -138,8 +140,8 @@ impl UCI for Engine {
                 _ => Ok(()),
             };
 
-            if result.is_err() {
-                writeln!(stdout, "{}", result.err().unwrap())?;
+            if result.is_err() && self.debug {
+                writeln!(stdout, "info string {}", result.err().unwrap())?;
                 stdout.flush()?;
             }
         }
@@ -154,6 +156,16 @@ impl UCI for Engine {
         writeln!(stdout, "id author Lukas Elias Lund Majland")?;
         writeln!(stdout, "uciok")?;
         stdout.flush()?;
+
+        Ok(())
+    }
+
+    fn debug(&mut self, arguments: &mut SplitWhitespace) -> Result<(), EngineError> {
+        self.debug = match arguments.next() {
+            Some("on") => true,
+            Some(_) => false,
+            None => return Err(EngineError::InvalidCommand("Missed argument to debug".to_string())),
+        };
 
         Ok(())
     }

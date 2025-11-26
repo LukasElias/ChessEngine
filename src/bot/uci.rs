@@ -7,7 +7,7 @@ use {
 pub trait UCI {
     fn listen(&mut self) -> Result<(), EngineError>;
     fn uci(&self) -> Result<(), EngineError>;
-    // fn debug(&self, on: bool) -> Result<(), EngineError>;
+    fn debug(&mut self, argument: &mut SplitWhitespace) -> Result<(), EngineError>;
     fn isready(&self) -> Result<(), EngineError>;
     // fn setoption(&self, ) -> Result<(), EngineError>;
     // fn register(&self) -> Result<(), EngineError>;
