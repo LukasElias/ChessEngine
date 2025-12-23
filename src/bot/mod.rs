@@ -7,9 +7,8 @@ use {
         Board, CastleRights, ChessMove, Error as ChessError, MoveGen, Piece, Square, ALL_PIECES,
     },
     std::{
-        error::Error, f32::{
-            INFINITY, NEG_INFINITY
-        }, fmt::{
+        error::Error,
+        fmt::{
             Debug,
             Display,
         }, io::{
@@ -21,7 +20,10 @@ use {
         }, str::{
             FromStr,
             SplitWhitespace,
-        }, time::Duration
+        }, time::{
+            Duration,
+            Instant,
+        }
     },
 };
 
@@ -101,8 +103,6 @@ impl UCI for Engine {
             // TODO: Optimize the position command, so it doesnt rebuild the whole board if it's just a few moves behind
             // TODO: Support every command from the gui:
             //
-            // debug [ on | off ]
-            // 
             // setoption name  [value ]
             // 
             // register
@@ -324,6 +324,9 @@ impl UCI for Engine {
 
 impl Engine {
     fn search_moves(&self, go_options: GoOptions) -> Result<ChessMove, EngineError> {
+        let mut stdout = stdout();
+        let now = Instant::now();
+
         let board = &self.current_board.ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
 
         let move_gen = MoveGen::new_legal(board);
@@ -341,6 +344,10 @@ impl Engine {
             }
         }
 
+        let elapsed = now.elapsed();
+        writeln!(stdout, "info string Elapsed time for the search: {:.2?}", elapsed)?;
+        stdout.flush()?;
+
         Ok(moves[highest_score_index].1)
     }
 }
@@ -353,7 +360,7 @@ fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
     let move_gen = MoveGen::new_legal(board);
 
     if maximizing {
-        let mut max = NEG_INFINITY as isize;
+        let mut max = f32::NEG_INFINITY as isize;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
@@ -364,7 +371,7 @@ fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
         
         return max;
     } else {
-        let mut min = INFINITY as isize;
+        let mut min = f32::INFINITY as isize;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
