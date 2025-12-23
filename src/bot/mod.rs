@@ -335,7 +335,7 @@ impl Engine {
 
         for child in move_gen {
             let child_board = board.make_move_new(child);
-            let score = minimax(&child_board, false, 3);
+            let score = minimax(&child_board, false, 3, f32::NEG_INFINITY as isize, f32::INFINITY as isize);
 
             moves.push((score, child));
 
@@ -352,7 +352,7 @@ impl Engine {
     }
 }
 
-fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
+fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut beta: isize) -> isize {
     if depth == 0 {
         return evaluate(board, maximizing);
     }
@@ -360,27 +360,37 @@ fn minimax(board: &Board, maximizing: bool, depth: usize) -> isize {
     let move_gen = MoveGen::new_legal(board);
 
     if maximizing {
-        let mut max = f32::NEG_INFINITY as isize;
+        let mut max_eval = f32::NEG_INFINITY as isize;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
-            let score = minimax(&new_board, false, depth - 1);
 
-            max = max.max(score);
+            let eval = minimax(&new_board, false, depth - 1, alpha, beta);
+            max_eval = max_eval.max(eval);
+            alpha = alpha.max(eval);
+
+            if beta <= alpha {
+                break
+            }
         }
         
-        return max;
+        return max_eval;
     } else {
-        let mut min = f32::INFINITY as isize;
+        let mut min_eval = f32::INFINITY as isize;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
-            let score = minimax(&new_board, true, depth - 1);
 
-            min = min.min(score);
+            let eval = minimax(&new_board, true, depth - 1, alpha, beta);
+            min_eval = min_eval.min(eval);
+            beta = beta.min(eval);
+
+            if beta <= alpha {
+                break
+            }
         }
         
-        return min;
+        return min_eval;
     }
 }
 
