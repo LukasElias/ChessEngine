@@ -11,7 +11,5 @@ use {
 fn main() -> Result<(), EngineError> {
     let mut engine = Engine::default();
 
-    engine.listen()?;
-
-    Ok(())
+    engine.listen()
 }

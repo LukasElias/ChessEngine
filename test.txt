@@ -1,0 +1,5 @@
+uci
+isready
+ucinewgame
+position startpos e2e4
+go infinite
