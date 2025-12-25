@@ -319,7 +319,6 @@ impl UCI for Engine {
     }
 }
 
-// TODO: Optimize and test how fast it is
 // TODO: check the go_options etc...
 
 impl Engine {
@@ -329,44 +328,39 @@ impl Engine {
 
         let board = &self.current_board.ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
 
-        let move_gen = MoveGen::new_legal(board);
-        let mut moves: Vec<(isize, ChessMove)> = Vec::new();
-        let mut highest_score_index: usize = 0;
+        let result = minimax(board, true, 4, f32::NEG_INFINITY as isize, f32::INFINITY as isize);
 
-        for child in move_gen {
-            let child_board = board.make_move_new(child);
-            let score = minimax(&child_board, false, 3, f32::NEG_INFINITY as isize, f32::INFINITY as isize);
-
-            moves.push((score, child));
-
-            if moves[highest_score_index].0 <= score {
-                highest_score_index = moves.len() - 1;
-            }
+        if self.debug {
+            let elapsed = now.elapsed();
+            writeln!(stdout, "info string Elapsed time for the search: {:.2?}", elapsed)?;
+            stdout.flush()?;
         }
 
-        let elapsed = now.elapsed();
-        writeln!(stdout, "info string Elapsed time for the search: {:.2?}", elapsed)?;
-        stdout.flush()?;
-
-        Ok(moves[highest_score_index].1)
+        Ok(result.1.expect("We should be able to unwrap safely since this value should only be a None value if the depth is 0"))
     }
 }
 
-fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut beta: isize) -> isize {
+fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut beta: isize) -> (isize, Option<ChessMove>) {
     if depth == 0 {
-        return evaluate(board, maximizing);
+        return (evaluate(board, maximizing), None);
     }
 
     let move_gen = MoveGen::new_legal(board);
 
     if maximizing {
         let mut max_eval = f32::NEG_INFINITY as isize;
+        let mut move_result = None;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
 
-            let eval = minimax(&new_board, false, depth - 1, alpha, beta);
-            max_eval = max_eval.max(eval);
+            let eval = minimax(&new_board, false, depth - 1, alpha, beta).0;
+            
+            if max_eval < eval {
+                max_eval = eval;
+                move_result = Some(chess_move);
+            }
+
             alpha = alpha.max(eval);
 
             if beta <= alpha {
@@ -374,15 +368,21 @@ fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut 
             }
         }
         
-        return max_eval;
+        return (max_eval, move_result);
     } else {
         let mut min_eval = f32::INFINITY as isize;
+        let mut move_result = None;
 
         for chess_move in move_gen {
             let new_board = board.make_move_new(chess_move);
 
-            let eval = minimax(&new_board, true, depth - 1, alpha, beta);
-            min_eval = min_eval.min(eval);
+            let eval = minimax(&new_board, true, depth - 1, alpha, beta).0;
+
+            if min_eval > eval {
+                min_eval = eval;
+                move_result = Some(chess_move);
+            }
+
             beta = beta.min(eval);
 
             if beta <= alpha {
@@ -390,7 +390,7 @@ fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut 
             }
         }
         
-        return min_eval;
+        return (min_eval, move_result);
     }
 }
 
