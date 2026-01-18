@@ -42,6 +42,7 @@ pub enum EngineError {
     InvalidCommand(String),
     Chess(ChessError),
     Io(IoError),
+    NoMoves,
 }
 
 impl Display for EngineError {
@@ -50,6 +51,7 @@ impl Display for EngineError {
             Self::InvalidCommand(string) => write!(f, "Invalid UCI Command: {}", string),
             Self::Chess(error) => write!(f, "An error with the chess rust crate has occured: {}", error),
             Self::Io(error) => write!(f, "An I/O error has occured: {}", error),
+            Self::NoMoves => write!(f, "There's no legal moves that can be made, since I'm in checkmate"),
         }
     }
 }
@@ -336,7 +338,10 @@ impl Engine {
             stdout.flush()?;
         }
 
-        Ok(result.1.expect("We should be able to unwrap safely since this value should only be a None value if the depth is 0"))
+        match result.1 {
+            Some(chess_move) => return Ok(chess_move),
+            None => return Err(EngineError::NoMoves),
+        }
     }
 }
 
