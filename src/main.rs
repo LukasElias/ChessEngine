@@ -1,12 +1,6 @@
 mod bot;
 
-use {
-    bot::{
-        Engine,
-        UCI,
-        EngineError,
-    },
-};
+use bot::{Engine, EngineError, UCI};
 
 fn main() -> Result<(), EngineError> {
     let mut engine = Engine::default();

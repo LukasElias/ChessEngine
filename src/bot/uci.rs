@@ -1,7 +1,4 @@
-use {
-    std::str::SplitWhitespace,
-    crate::EngineError,
-};
+use {crate::EngineError, std::str::SplitWhitespace};
 
 // Everything that will have arguments after the UCI command should have a SplitWhitespace struct for the arguments so it can parse it all and make it easier for the listen method to call each function
 pub trait UCI {

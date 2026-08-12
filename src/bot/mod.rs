@@ -1,29 +1,17 @@
-mod uci;
 mod pst;
+mod uci;
 
 use {
-    pst::*,
     chess::{
-        Board, CastleRights, ChessMove, Error as ChessError, MoveGen, Piece, Square, ALL_PIECES,
+        ALL_PIECES, Board, CastleRights, ChessMove, Error as ChessError, MoveGen, Piece, Square,
     },
+    pst::*,
     std::{
         error::Error,
-        fmt::{
-            Debug,
-            Display,
-        }, io::{
-            stdin,
-            stdout,
-            BufRead,
-            Error as IoError,
-            Write,
-        }, str::{
-            FromStr,
-            SplitWhitespace,
-        }, time::{
-            Duration,
-            Instant,
-        }
+        fmt::{Debug, Display},
+        io::{BufRead, Error as IoError, Write, stdin, stdout},
+        str::{FromStr, SplitWhitespace},
+        time::{Duration, Instant},
     },
 };
 
@@ -49,9 +37,16 @@ impl Display for EngineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidCommand(string) => write!(f, "Invalid UCI Command: {}", string),
-            Self::Chess(error) => write!(f, "An error with the chess rust crate has occured: {}", error),
+            Self::Chess(error) => write!(
+                f,
+                "An error with the chess rust crate has occured: {}",
+                error
+            ),
             Self::Io(error) => write!(f, "An I/O error has occured: {}", error),
-            Self::NoMoves => write!(f, "There's no legal moves that can be made, since I'm in checkmate"),
+            Self::NoMoves => write!(
+                f,
+                "There's no legal moves that can be made, since I'm in checkmate"
+            ),
         }
     }
 }
@@ -106,14 +101,14 @@ impl UCI for Engine {
             // TODO: Support every command from the gui:
             //
             // setoption name  [value ]
-            // 
+            //
             // register
             //   later
-            //   name 
-            //   code 
-            // 
+            //   name
+            //   code
+            //
             // go
-            //   searchmoves  .... 
+            //   searchmoves  ....
             //   ponder
             //   wtime x
             //   btime x
@@ -125,9 +120,9 @@ impl UCI for Engine {
             //   mate x
             //   movetime x
             //   infinite
-            //   
+            //
             // stop
-            // 
+            //
             // ponderhit
             //
 
@@ -166,7 +161,11 @@ impl UCI for Engine {
         self.debug = match arguments.next() {
             Some("on") => true,
             Some(_) => false,
-            None => return Err(EngineError::InvalidCommand("Missed argument to debug".to_string())),
+            None => {
+                return Err(EngineError::InvalidCommand(
+                    "Missed argument to debug".to_string(),
+                ));
+            }
         };
 
         Ok(())
@@ -200,7 +199,7 @@ impl UCI for Engine {
                 }
 
                 board = Board::from_str(fen.join(" ").as_str())?;
-            },
+            }
             _ => return Err(EngineError::InvalidCommand("position".to_string())),
         }
 
@@ -210,7 +209,9 @@ impl UCI for Engine {
             Some("moves") => {
                 while let Some(move_notation) = arguments.next() {
                     if move_notation.len() < 4 || move_notation.len() > 5 {
-                        return Err(EngineError::InvalidCommand("position ... moves".to_string()));
+                        return Err(EngineError::InvalidCommand(
+                            "position ... moves".to_string(),
+                        ));
                     }
 
                     let src_square = Square::from_str(&move_notation[0..2])?;
@@ -229,7 +230,7 @@ impl UCI for Engine {
                     moves.push(chess_move);
                 }
             }
-            _ => ()
+            _ => (),
         }
 
         self.current_board = Some(board);
@@ -265,47 +266,83 @@ impl UCI for Engine {
                         let chess_move = ChessMove::new(src_square, dest_square, promotion);
                         options.search_moves.push(chess_move);
                     }
-                },
+                }
                 "ponder" => options.ponder = true,
                 "wtime" => {
-                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go wtime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go wtime".to_string()))?;
+                    let millisec: u64 = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go wtime".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go wtime".to_string()))?;
                     options.white_time = Some(Duration::from_millis(millisec));
-                },
+                }
                 "btime" => {
-                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go btime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go btime".to_string()))?;
+                    let millisec: u64 = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go btime".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go btime".to_string()))?;
                     options.black_time = Some(Duration::from_millis(millisec));
-                },
+                }
                 "winc" => {
-                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go winc".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go winc".to_string()))?;
+                    let millisec: u64 = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go winc".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go winc".to_string()))?;
                     options.white_increment_time = Duration::from_millis(millisec);
-                },
+                }
                 "binc" => {
-                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go binc".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go binc".to_string()))?;
+                    let millisec: u64 = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go binc".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go binc".to_string()))?;
                     options.black_increment_time = Duration::from_millis(millisec);
-                },
+                }
                 "movestogo" => {
-                    let moves: usize = arguments.next().ok_or(EngineError::InvalidCommand("go movestogo".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go movestogo".to_string()))?;
+                    let moves: usize = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go movestogo".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go movestogo".to_string()))?;
                     options.moves_to_go = moves;
-                },
+                }
                 "depth" => {
-                    let depth: usize = arguments.next().ok_or(EngineError::InvalidCommand("go depth".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go depth".to_string()))?;
+                    let depth: usize = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go depth".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go depth".to_string()))?;
                     options.depth = depth;
-                },
+                }
                 "nodes" => {
-                    let nodes: usize = arguments.next().ok_or(EngineError::InvalidCommand("go nodes".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go nodes".to_string()))?;
+                    let nodes: usize = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go nodes".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go nodes".to_string()))?;
                     options.nodes = nodes;
-                },
+                }
                 "mate" => {
-                    let mate: usize = arguments.next().ok_or(EngineError::InvalidCommand("go mate".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go mate".to_string()))?;
+                    let mate: usize = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go mate".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go mate".to_string()))?;
                     options.mate = mate;
-                },
+                }
                 "movetime" => {
-                    let millisec: u64 = arguments.next().ok_or(EngineError::InvalidCommand("go movetime".to_string()))?.parse().map_err(|_| EngineError::InvalidCommand("go movetime".to_string()))?;
+                    let millisec: u64 = arguments
+                        .next()
+                        .ok_or(EngineError::InvalidCommand("go movetime".to_string()))?
+                        .parse()
+                        .map_err(|_| EngineError::InvalidCommand("go movetime".to_string()))?;
                     options.move_time = MoveTime::Finite(Duration::from_millis(millisec));
-                },
+                }
                 "infinite" => {
                     options.move_time = MoveTime::Infinite;
-                },
+                }
                 _ => (),
             }
         }
@@ -328,13 +365,25 @@ impl Engine {
         let mut stdout = stdout();
         let now = Instant::now();
 
-        let board = &self.current_board.ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
+        let board = &self
+            .current_board
+            .ok_or(EngineError::InvalidCommand("No position given".to_string()))?;
 
-        let result = minimax(board, true, 4, f32::NEG_INFINITY as isize, f32::INFINITY as isize);
+        let result = minimax(
+            board,
+            true,
+            4,
+            f32::NEG_INFINITY as isize,
+            f32::INFINITY as isize,
+        );
 
         if self.debug {
             let elapsed = now.elapsed();
-            writeln!(stdout, "info string Elapsed time for the search: {:.2?}", elapsed)?;
+            writeln!(
+                stdout,
+                "info string Elapsed time for the search: {:.2?}",
+                elapsed
+            )?;
             stdout.flush()?;
         }
 
@@ -345,7 +394,13 @@ impl Engine {
     }
 }
 
-fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut beta: isize) -> (isize, Option<ChessMove>) {
+fn minimax(
+    board: &Board,
+    maximizing: bool,
+    depth: usize,
+    mut alpha: isize,
+    mut beta: isize,
+) -> (isize, Option<ChessMove>) {
     if depth == 0 {
         return (evaluate(board, maximizing), None);
     }
@@ -360,7 +415,7 @@ fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut 
             let new_board = board.make_move_new(chess_move);
 
             let eval = minimax(&new_board, false, depth - 1, alpha, beta).0;
-            
+
             if max_eval < eval {
                 max_eval = eval;
                 move_result = Some(chess_move);
@@ -369,10 +424,10 @@ fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut 
             alpha = alpha.max(eval);
 
             if beta <= alpha {
-                break
+                break;
             }
         }
-        
+
         return (max_eval, move_result);
     } else {
         let mut min_eval = f32::INFINITY as isize;
@@ -391,16 +446,20 @@ fn minimax(board: &Board, maximizing: bool, depth: usize, mut alpha: isize, mut 
             beta = beta.min(eval);
 
             if beta <= alpha {
-                break
+                break;
             }
         }
-        
+
         return (min_eval, move_result);
     }
 }
 
 fn evaluate(board: &Board, maximizing: bool) -> isize {
-    let maximizing_player = if maximizing { board.side_to_move() } else { !board.side_to_move() };
+    let maximizing_player = if maximizing {
+        board.side_to_move()
+    } else {
+        !board.side_to_move()
+    };
 
     let mut score = 0;
     let max_castle_rights = board.castle_rights(maximizing_player);
@@ -412,7 +471,9 @@ fn evaluate(board: &Board, maximizing: bool) -> isize {
     let max_pieces = board.color_combined(maximizing_player);
     let min_pieces = board.color_combined(!maximizing_player);
 
-    for (piece, pst) in std::array::from_fn::<(Piece, PieceSquareTable), 6, _>(|i| (ALL_PIECES[i], ALL_PSTS[i])) {
+    for (piece, pst) in
+        std::array::from_fn::<(Piece, PieceSquareTable), 6, _>(|i| (ALL_PIECES[i], ALL_PSTS[i]))
+    {
         let max_bit_board = board.pieces(piece) & max_pieces;
 
         score += max_bit_board.popcnt() as isize * piece_to_score(piece);
